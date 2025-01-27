@@ -1,5 +1,5 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
+import axios from 'axios';
+import * as cheerio from 'cheerio';
 
 async function obtenerTranscripcion(urlVideo) {
     try {
@@ -45,39 +45,66 @@ async function obtenerTranscripcion(urlVideo) {
     }
 }
 
-// Export a function that handles the request
-export default async function handler(req, res) {
-    // Enable CORS
-    res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-    res.setHeader(
-        'Access-Control-Allow-Headers',
-        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-    );
+export const config = {
+    runtime: 'edge'
+};
 
-    // Handle preflight request
-    if (req.method === 'OPTIONS') {
-        res.status(200).end();
-        return;
+export default async function handler(req) {
+    // Verificar el método
+    if (req.method !== 'GET') {
+        return new Response(
+            JSON.stringify({ error: 'Método no permitido' }),
+            {
+                status: 405,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET,OPTIONS'
+                }
+            }
+        );
     }
 
-    // Handle actual request
-    if (req.method === 'GET') {
-        const urlVideo = req.query.url;
+    // Obtener la URL del video de los parámetros de consulta
+    const url = new URL(req.url);
+    const urlVideo = url.searchParams.get('url');
 
-        if (!urlVideo) {
-            return res.status(400).json({ error: 'Falta el parámetro "url".' });
-        }
+    if (!urlVideo) {
+        return new Response(
+            JSON.stringify({ error: 'Falta el parámetro "url".' }),
+            {
+                status: 400,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            }
+        );
+    }
 
-        try {
-            const transcripcion = await obtenerTranscripcion(urlVideo);
-            return res.status(200).json({ transcripcion });
-        } catch (error) {
-            console.error('Error:', error);
-            return res.status(500).json({ error: 'Error al procesar la solicitud' });
-        }
-    } else {
-        return res.status(405).json({ error: 'Método no permitido' });
+    try {
+        const transcripcion = await obtenerTranscripcion(urlVideo);
+        return new Response(
+            JSON.stringify({ transcripcion }),
+            {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            }
+        );
+    } catch (error) {
+        console.error('Error:', error);
+        return new Response(
+            JSON.stringify({ error: 'Error al procesar la solicitud' }),
+            {
+                status: 500,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            }
+        );
     }
 }

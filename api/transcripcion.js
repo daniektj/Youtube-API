@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
-function procesarTranscripcion(transcripcionXML) {
+function procesarTranscripcion(transcripcionXML, urlVideo) {
     const $ = cheerio.load(transcripcionXML, { xmlMode: true });
     
     // Extraer todos los textos con sus tiempos
@@ -39,6 +39,7 @@ function procesarTranscripcion(transcripcionXML) {
     }
 
     return {
+        url_video: urlVideo,
         transcripcion_completa: textoCompleto,
         duracion_total: {
             segundos: duracionTotal,
@@ -50,8 +51,7 @@ function procesarTranscripcion(transcripcionXML) {
             numero_segmentos: segmentos.length,
             palabras_totales: textoCompleto.split(' ').length,
             tiempo_promedio_segmento: duracionTotal / segmentos.length
-        },
-        segmentos_raw: segmentos
+        }
     };
 }
 
@@ -81,7 +81,7 @@ async function obtenerTranscripcion(urlVideo) {
                     // Buscar transcripción en español o usar la primera disponible
                     const track = transcript_tracks.find(t => t.languageCode === 'es') || transcript_tracks[0];
                     const transcriptResponse = await axios.get(track.baseUrl);
-                    return procesarTranscripcion(transcriptResponse.data);
+                    return procesarTranscripcion(transcriptResponse.data, urlVideo);
                 } catch (jsonError) {
                     throw new Error("Error al procesar la respuesta de YouTube: " + jsonError.message);
                 }

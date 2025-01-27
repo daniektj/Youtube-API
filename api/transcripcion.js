@@ -45,7 +45,24 @@ async function obtenerTranscripcion(urlVideo) {
     }
 }
 
-module.exports = async (req, res) => {
+// Export a function that handles the request
+export default async function handler(req, res) {
+    // Enable CORS
+    res.setHeader('Access-Control-Allow-Credentials', true);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+    res.setHeader(
+        'Access-Control-Allow-Headers',
+        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+    );
+
+    // Handle preflight request
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return;
+    }
+
+    // Handle actual request
     if (req.method === 'GET') {
         const urlVideo = req.query.url;
 
@@ -55,11 +72,12 @@ module.exports = async (req, res) => {
 
         try {
             const transcripcion = await obtenerTranscripcion(urlVideo);
-            res.status(200).json({ transcripcion });
+            return res.status(200).json({ transcripcion });
         } catch (error) {
-            res.status(500).json({ error: 'Error al procesar la solicitud' });
+            console.error('Error:', error);
+            return res.status(500).json({ error: 'Error al procesar la solicitud' });
         }
     } else {
-        res.status(405).json({ error: 'Método no permitido' });
+        return res.status(405).json({ error: 'Método no permitido' });
     }
 }
